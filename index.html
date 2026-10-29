@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estilos de vida entre generaciones</title>
+<style>
+  :root {
+    --verde-oscuro: #1b4332;
+    --verde: #2d6a4f;
+    --verde-claro: #d8f3dc;
+    --verde-medio: #95d5b2;
+    --tierra: #8a5a2b;
+    --crema: #f6fbf4;
+    --azul-agua: #3a86a8;
+    --texto: #1f2d24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--verde-claro) 0%, var(--crema) 220px);
+    color: var(--texto);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--verde-oscuro);
+    color: #fff;
+    text-align: center;
+    padding: 32px 16px 28px;
+    border-bottom: 6px solid var(--verde-medio);
+  }
+  header h1 { margin: 0 0 8px; font-size: clamp(1.6rem, 4vw, 2.4rem); }
+  header p { margin: 0 auto; max-width: 720px; font-size: 1.05rem; opacity: .95; }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+  .columnas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .generacion {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 3px 10px rgba(27, 67, 50, .12);
+    border-top: 6px solid var(--verde);
+  }
+  .generacion:nth-child(2) { border-top-color: var(--tierra); }
+  .generacion:nth-child(3) { border-top-color: var(--azul-agua); }
+  .generacion h2 { margin: 0 0 12px; color: var(--verde-oscuro); font-size: 1.3rem; }
+  label { display: block; font-weight: 600; font-size: .92rem; margin: 12px 0 4px; }
+  input[type="number"], textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid #b7c9bc;
+    border-radius: 8px;
+    font: inherit;
+    background: #fbfefb;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, .2);
+  }
+  .vacio { border-color: #c0392b !important; background: #fdf1ef; }
+  .acciones { text-align: center; margin-top: 28px; }
+  button {
+    background: var(--verde);
+    color: #fff;
+    border: none;
+    padding: 14px 36px;
+    font-size: 1.1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background .2s, transform .1s;
+  }
+  button:hover:not(:disabled) { background: var(--verde-oscuro); transform: translateY(-1px); }
+  button:disabled { background: #9bb5a6; cursor: not-allowed; }
+  #aviso { margin-top: 14px; font-weight: 600; min-height: 1.4em; }
+  #aviso.error { color: #c0392b; }
+  #aviso.info { color: var(--verde); }
+  #resultado {
+    display: none;
+    margin: 20px auto 0;
+    max-width: 900px;
+    background: #fff;
+    border-left: 6px solid var(--verde);
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 3px 10px rgba(27, 67, 50, .12);
+    white-space: pre-line;
+  }
+  footer { text-align: center; padding: 16px; font-size: .85rem; color: #5b6f62; }
+  @media (max-width: 900px) {
+    .columnas { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 Estilos de vida entre generaciones</h1>
+  <p>Se entrevistó a tres generaciones sobre sus hábitos de consumo para compararlos y entender cómo han cambiado la alimentación, la ropa, el transporte, la basura y el agua.</p>
+</header>
+
+<main>
+  <div class="columnas" id="columnas"></div>
+
+  <div class="acciones">
+    <button id="btnComparar" type="button">Comparar respuestas</button>
+    <div id="aviso" role="status"></div>
+  </div>
+
+  <div id="resultado"></div>
+</main>
+
+<footer>Desarrollo Sustentable · Práctica 3.4 · Nicolas Niebla Barraza</footer>
+
+<script>
+  // Pega aquí la URL de tu webhook de Make
+  const WEBHOOK_URL = "https://hook.us2.make.com/r9wsh6s9lkgmfkyxit7ukovrptehn6fo";
+
+  const PREGUNTAS = [
+    "¿Cómo se conseguía la comida en casa: mercado, tienda, súper o cultivo propio?",
+    "¿Qué se hacía con la ropa o los zapatos viejos o rotos?",
+    "¿Qué aparatos electrónicos tenías y cada cuánto los cambiabas?",
+    "¿Cómo te transportabas a la escuela o al trabajo?",
+    "¿Qué se hacía con la basura? ¿Se separaba o se reutilizaba algo?",
+    "¿Usabas bolsas, botellas o envases desechables?",
+    "¿Cómo se usaba y se cuidaba el agua en casa?",
+    "¿Qué consideras necesario para vivir bien?"
+  ];
+
+  const GENERACIONES = [
+    { clave: "abuelo", titulo: "Abuelo/a" },
+    { clave: "padre",  titulo: "Padre/Madre" },
+    { clave: "amigo",  titulo: "Amigo/a" }
+  ];
+
+  const contenedor = document.getElementById("columnas");
+  const btn = document.getElementById("btnComparar");
+  const aviso = document.getElementById("aviso");
+  const resultado = document.getElementById("resultado");
+
+  // Construir las tres secciones
+  GENERACIONES.forEach(function (g) {
+    const sec = document.createElement("section");
+    sec.className = "generacion";
+
+    const h2 = document.createElement("h2");
+    h2.textContent = g.titulo;
+    sec.appendChild(h2);
+
+    const lblEdad = document.createElement("label");
+    lblEdad.setAttribute("for", g.clave + "_edad");
+    lblEdad.textContent = "Edad";
+    sec.appendChild(lblEdad);
+
+    const edad = document.createElement("input");
+    edad.type = "number";
+    edad.min = "1";
+    edad.max = "120";
+    edad.id = g.clave + "_edad";
+    sec.appendChild(edad);
+
+    PREGUNTAS.forEach(function (p, i) {
+      const lbl = document.createElement("label");
+      lbl.setAttribute("for", g.clave + "_p" + (i + 1));
+      lbl.textContent = (i + 1) + ". " + p;
+      sec.appendChild(lbl);
+
+      const ta = document.createElement("textarea");
+      ta.id = g.clave + "_p" + (i + 1);
+      sec.appendChild(ta);
+    });
+
+    contenedor.appendChild(sec);
+  });
+
+  // Quitar el marcado rojo al escribir
+  contenedor.addEventListener("input", function (e) {
+    e.target.classList.remove("vacio");
+  });
+
+  function validar() {
+    let completo = true;
+    contenedor.querySelectorAll("input, textarea").forEach(function (campo) {
+      if (campo.value.trim() === "") {
+        campo.classList.add("vacio");
+        completo = false;
+      } else {
+        campo.classList.remove("vacio");
+      }
+    });
+    return completo;
+  }
+
+  function armarTexto(clave) {
+    let texto = "Edad: " + document.getElementById(clave + "_edad").value.trim();
+    PREGUNTAS.forEach(function (p, i) {
+      const r = document.getElementById(clave + "_p" + (i + 1)).value.trim();
+      texto += "\n" + (i + 1) + ". " + p + ": " + r;
+    });
+    return texto;
+  }
+
+  btn.addEventListener("click", async function () {
+    resultado.style.display = "none";
+
+    if (!validar()) {
+      aviso.className = "error";
+      aviso.textContent = "Faltan campos por llenar. Completa todos los campos (marcados en rojo) antes de comparar.";
+      return;
+    }
+
+    const cuerpo = new URLSearchParams();
+    cuerpo.append("abuelo", armarTexto("abuelo"));
+    cuerpo.append("padre", armarTexto("padre"));
+    cuerpo.append("amigo", armarTexto("amigo"));
+
+    aviso.className = "info";
+    aviso.textContent = "Analizando respuestas, esto puede tardar unos segundos...";
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        body: cuerpo
+      });
+      if (!resp.ok) throw new Error("Respuesta " + resp.status);
+      const texto = await resp.text();
+      aviso.textContent = "";
+      resultado.textContent = texto;
+      resultado.style.display = "block";
+      resultado.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      aviso.className = "error";
+      aviso.textContent = "No se pudo obtener el análisis, intenta de nuevo.";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
